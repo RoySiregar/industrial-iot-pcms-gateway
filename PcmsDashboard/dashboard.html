@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCMS - Industrial IoT Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+
+    <div id="app" class="container mx-auto p-6">
+        <div class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-400">PCMS Live Dashboard</h1>
+                <p class="text-gray-400">Real-time Welding Machine Telemetry</p>
+            </div>
+            <div class="text-right">
+                <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
+                    Live Connection Active
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4" :class="statusColor">
+                <h3 class="text-gray-400 text-sm font-semibold mb-1">Status Mesin</h3>
+                <p class="text-3xl font-bold">{{ machineData.status_text || 'Loading...' }}</p>
+                <p class="text-xs mt-2 text-gray-500">ID: WELD-001</p>
+            </div>
+            
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-yellow-500">
+                <h3 class="text-gray-400 text-sm font-semibold mb-1">Tegangan (Voltage)</h3>
+                <p class="text-3xl font-bold">{{ machineData.voltage || 0 }} <span class="text-lg">V</span></p>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-blue-500">
+                <h3 class="text-gray-400 text-sm font-semibold mb-1">Arus (Ampere)</h3>
+                <p class="text-3xl font-bold">{{ machineData.ampere || 0 }} <span class="text-lg">A</span></p>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-purple-500">
+                <h3 class="text-gray-400 text-sm font-semibold mb-1">Total Jam Operasi</h3>
+                <p class="text-3xl font-bold">{{ machineData.operating_hours || 0 }} <span class="text-lg">Jam</span></p>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h3 class="text-xl font-semibold mb-4 text-gray-300">Trend Arus Listrik (Ampere)</h3>
+            <canvas id="ampereChart" height="80"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    machineData: {},
+                    chartInstance: null
+                }
+            },
+            computed: {
+                // Mewarnai kartu status berdasarkan nilai Modbus (2 = Hijau, 1 = Kuning, 0 = Merah)
+                statusColor() {
+                    if (this.machineData.status_code === 2) return 'border-green-500 text-green-400';
+                    if (this.machineData.status_code === 1) return 'border-yellow-500 text-yellow-400';
+                    return 'border-red-500 text-red-400';
+                }
+            },
+            methods: {
+                // Fungsi memanggil API C# kita
+                async fetchCurrentData() {
+                    try {
+                        const response = await fetch('http://localhost:5142/api/machine/WELD-001/current');
+                        const data = await response.json();
+                        this.machineData = data;
+                    } catch (error) {
+                        console.error("Gagal mengambil data:", error);
+                    }
+                },
+                async fetchHistoryData() {
+                    try {
+                        const response = await fetch('http://localhost:5142/api/machine/WELD-001/history');
+                        const data = await response.json();
+                        
+                        // Balik urutan array agar waktu terlama di kiri, terbaru di kanan
+                        const reversedData = data.reverse();
+                        
+                        const labels = reversedData.map(d => new Date(d.timestamp).toLocaleTimeString());
+                        const amperes = reversedData.map(d => d.ampere);
+
+                        this.updateChart(labels, amperes);
+                    } catch (error) {
+                        console.error("Gagal mengambil histori:", error);
+                    }
+                },
+                initChart() {
+                    const ctx = document.getElementById('ampereChart').getContext('2d');
+                    this.chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                label: 'Ampere',
+                                data: [],
+                                borderColor: '#3b82f6', // Blue-500
+                                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4 // Membuat garisnya melengkung halus
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            animation: { duration: 0 }, // Matikan animasi awal agar update terlihat mulus
+                            scales: {
+                                y: { beginAtZero: false, suggestedMin: 100, suggestedMax: 160 }
+                            }
+                        }
+                    });
+                },
+                updateChart(labels, data) {
+                    if (this.chartInstance) {
+                        this.chartInstance.data.labels = labels;
+                        this.chartInstance.data.datasets[0].data = data;
+                        this.chartInstance.update();
+                    }
+                }
+            },
+            mounted() {
+                this.initChart();
+                
+                // Tarik data pertama kali
+                this.fetchCurrentData();
+                this.fetchHistoryData();
+
+                // Auto-refresh: Kartu atas update tiap 1 detik, Grafik update tiap 3 detik
+                setInterval(this.fetchCurrentData, 1000);
+                setInterval(this.fetchHistoryData, 3000);
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
