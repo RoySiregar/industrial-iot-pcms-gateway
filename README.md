@@ -1,4 +1,4 @@
-# ?? Industrial IoT & PCMS Gateway (Microservices Architecture)
+# 🏭 Industrial IoT & PCMS Gateway (Microservices Architecture)
 
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white)
@@ -7,24 +7,24 @@
 ![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vue.js&logoColor=4FC08D)
 ![Security](https://img.shields.io/badge/Security-JWT_Auth-black?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 
-## ?? Web Dashboard Preview
+## 📸 Web Dashboard Preview
 <img width="986" height="688" alt="dashboard-preview" src="https://github.com/user-attachments/assets/98618748-daf3-453f-aa7a-481730c88fe4" />
 <img width="975" height="684" alt="edgegateway_alarm-preview" src="https://github.com/user-attachments/assets/b278e5da-658b-4c30-be38-ff2b9cff8352" />
 
 
 
-## ?? Overview
+## 📌 Overview
 This project is an **End-to-End Industrial IoT (IIoT) Data Pipeline** designed to bridge the gap between shop floor operations (Heavy Machinery, Welding Machines, CNCs) and enterprise systems like **Project Control Management Systems (PCMS)**. 
 
 Targeting high-tech manufacturing, Marine, Offshore, and EPCI sectors, this solution implements a decoupled, event-driven microservices architecture to ensure high fault tolerance, enterprise-grade security, and real-time data visibility.
 
-## ??? System Architecture
+## 🏗️ System Architecture
 
 The system is fully decoupled into 4 separate modules. If the database goes down, the edge gateway continues to publish data. If the edge device loses connection, the dashboard remains active showing historical data.
 
-`[Heavy Machinery / Modbus]` ? `[Edge Gateway]` ? `[MQTT Cloud Broker]` ? `[Data Logger]` ? `[MySQL]` ? `[Secure REST API]` ? `[Vue.js SPA Dashboard]`
+`[Heavy Machinery / Modbus]` ➔ `[Edge Gateway]` ➔ `[MQTT Cloud Broker]` ➔ `[Data Logger]` ➔ `[MySQL]` ➔ `[Secure REST API]` ➔ `[Vue.js SPA Dashboard]`
 
-### ?? Repository Structure
+### 📂 Repository Structure
 This monorepo contains the following isolated services:
 
 1. **`ModbusCollector/` (Edge Gateway)**
@@ -42,20 +42,20 @@ This monorepo contains the following isolated services:
    - A responsive, dark-mode SCADA-like Single Page Application (SPA) dashboard built with Vue.js 3, Tailwind CSS, and Chart.js.
    - Features real-time live charts, equipment status indicators, dynamic sidebar navigation, and automated JWT Bearer Token injection.
 
-## ?? Key Features
+## 🚀 Key Features
 - **IT/OT Convergence:** Seamlessly translates industrial protocols (Modbus) into IT standards (JSON/REST).
 - **Enterprise Security (JWT):** API endpoints are locked down and require valid authentication tokens.
 - **Fault-Tolerant Microservices:** Edge devices and databases are decoupled via an MQTT message broker.
 - **Data Fluctuation Simulation:** Includes a realistic noise/fluctuation generator when the machine is in the "Running/Welding" state.
 - **Real-Time Visualization:** Zero-refresh dashboard with automated HTTP short polling.
 
-## ??? Tech Stack
+## 🛠️ Tech Stack
 - **Backend & Edge Services:** C# .NET 9.0, NModbus4, MQTTnet
 - **Database & ORM:** MySQL (Laragon), Dapper
 - **Frontend:** HTML5, Vue.js 3, Tailwind CSS, Chart.js
 - **Protocols:** Modbus TCP, MQTT, HTTP/REST
 
-## ?? Getting Started (Local Development)
+## ⚙️ Getting Started (Local Development)
 
 ### Prerequisites
 - .NET 9.0 SDK
