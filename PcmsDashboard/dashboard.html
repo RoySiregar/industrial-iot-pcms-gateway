@@ -3,145 +3,367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PCMS - Industrial IoT Dashboard</title>
+    <title>PCMS - Enterprise Industrial Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2563eb; }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+<body class="bg-gray-900 text-gray-200 font-sans antialiased overflow-hidden">
 
-    <div id="app" class="container mx-auto p-6">
-        <div class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
-            <div>
-                <h1 class="text-3xl font-bold text-blue-400">PCMS Live Dashboard</h1>
-                <p class="text-gray-400">Real-time Welding Machine Telemetry</p>
-            </div>
-            <div class="text-right">
-                <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
-                    Live Connection Active
-                </span>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4" :class="statusColor">
-                <h3 class="text-gray-400 text-sm font-semibold mb-1">Status Mesin</h3>
-                <p class="text-3xl font-bold">{{ machineData.status_text || 'Loading...' }}</p>
-                <p class="text-xs mt-2 text-gray-500">ID: WELD-001</p>
+    <div id="app" class="flex h-screen w-full">
+        
+        <aside class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col hidden md:flex">
+            <div class="h-16 flex items-center px-6 border-b border-gray-700 bg-gray-900">
+                <i class="fa-solid fa-industry text-blue-500 text-2xl mr-3"></i>
+                <span class="text-xl font-bold tracking-wider text-white">PCMS<span class="text-blue-500"> IoT</span></span>
             </div>
             
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-yellow-500">
-                <h3 class="text-gray-400 text-sm font-semibold mb-1">Tegangan (Voltage)</h3>
-                <p class="text-3xl font-bold">{{ machineData.voltage || 0 }} <span class="text-lg">V</span></p>
+            <nav class="flex-1 py-6 px-4 space-y-2">
+                <a href="#" @click.prevent="activeTab = 'dashboard'" 
+                   :class="activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-gray-400 hover:bg-gray-700 hover:text-white'" 
+                   class="flex items-center px-4 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-chart-line w-6"></i> Dashboard
+                </a>
+                
+                <a href="#" @click.prevent="activeTab = 'gateways'" 
+                   :class="activeTab === 'gateways' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-gray-400 hover:bg-gray-700 hover:text-white'" 
+                   class="flex items-center px-4 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-server w-6"></i> Edge Gateways
+                </a>
+                
+                <a href="#" @click.prevent="activeTab = 'alarms'" 
+                   :class="activeTab === 'alarms' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-gray-400 hover:bg-gray-700 hover:text-white'" 
+                   class="flex items-center px-4 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-triangle-exclamation w-6"></i> Alarm Manager
+                    <span class="ml-auto w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                </a>
+                
+                <a href="#" @click.prevent="activeTab = 'settings'" 
+                   :class="activeTab === 'settings' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-gray-400 hover:bg-gray-700 hover:text-white'" 
+                   class="flex items-center px-4 py-3 rounded-lg transition">
+                    <i class="fa-solid fa-gear w-6"></i> Settings
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-700 text-xs text-gray-500 text-center">
+                System v1.0.0 &copy; 2026
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-[#0f172a]">
+            
+            <header class="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6 sticky top-0 z-10">
+                <div class="flex items-center text-gray-300">
+                    <span class="font-semibold text-lg uppercase tracking-wider">{{ activeTab }} View</span>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="text-right">
+                        <p class="text-xs text-gray-400 uppercase tracking-widest">Server Time</p>
+                        <p class="text-sm font-mono text-gray-200">{{ currentTime }}</p>
+                    </div>
+                    <div class="flex items-center px-3 py-1 bg-gray-900 rounded-full border border-gray-600">
+                        <div class="w-2.5 h-2.5 rounded-full mr-2" :class="isConnecting ? 'bg-yellow-500' : 'bg-green-500 animate-pulse'"></div>
+                        <span class="text-xs font-semibold text-gray-300">Live Data</span>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shadow-lg">
+                        <i class="fa-solid fa-user-tie text-sm"></i>
+                    </div>
+                </div>
+            </header>
+
+            <div v-show="activeTab === 'dashboard'" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="bg-gray-800 rounded-xl p-5 border-l-4 shadow-md flex items-center justify-between" :class="statusColor.border">
+                        <div>
+                            <p class="text-sm text-gray-400 font-semibold mb-1">Status Mesin</p>
+                            <h3 class="text-2xl font-bold" :class="statusColor.text">{{ machineData.status_text || 'Loading...' }}</h3>
+                            <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-microchip mr-1"></i> ID: WELD-001</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-900 text-2xl" :class="statusColor.text">
+                            <i class="fa-solid fa-power-off"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 border-l-4 border-yellow-500 shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 font-semibold mb-1">Tegangan Jaringan</p>
+                            <h3 class="text-2xl font-bold text-gray-100">{{ machineData.voltage || 0 }} <span class="text-base text-gray-500">VAC</span></h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-900 text-yellow-500 text-xl">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 border-l-4 border-blue-500 shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 font-semibold mb-1">Arus Pengelasan</p>
+                            <h3 class="text-2xl font-bold text-gray-100">{{ machineData.ampere || 0 }} <span class="text-base text-gray-500">AMP</span></h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-900 text-blue-500 text-xl">
+                            <i class="fa-solid fa-wave-square"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 border-l-4 border-purple-500 shadow-md flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 font-semibold mb-1">Total Jam Operasi</p>
+                            <h3 class="text-2xl font-bold text-gray-100">{{ machineData.operating_hours || 0 }} <span class="text-base text-gray-500">Jam</span></h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-gray-900 text-purple-500 text-xl">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="col-span-2 bg-gray-800 rounded-xl shadow-md p-5 border border-gray-700 relative">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-200"><i class="fa-solid fa-chart-area text-blue-500 mr-2"></i>Trend Arus Listrik</h3>
+                        </div>
+                        <div class="relative h-64 w-full"><canvas id="ampereChart"></canvas></div>
+                    </div>
+                    <div class="col-span-1 bg-gray-800 rounded-xl shadow-md p-5 border border-gray-700 flex flex-col">
+                        <h3 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-list text-purple-500 mr-2"></i>Event Logs Terakhir</h3>
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-sm text-left text-gray-400">
+                                <thead class="text-xs text-gray-400 uppercase bg-gray-900 border-b border-gray-700">
+                                    <tr><th class="px-3 py-2">Waktu</th><th class="px-3 py-2">Stat</th><th class="px-3 py-2">Amp</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(log, index) in historyTableData" :key="index" class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700">
+                                        <td class="px-3 py-2 font-mono text-xs">{{ formatTime(log.timestamp) }}</td>
+                                        <td class="px-3 py-2">
+                                            <span v-if="log.statusCode === 2" class="text-green-500"><i class="fa-solid fa-circle text-[10px]"></i></span>
+                                            <span v-else class="text-yellow-500"><i class="fa-solid fa-circle text-[10px]"></i></span>
+                                        </td>
+                                        <td class="px-3 py-2 font-bold">{{ log.ampere }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-blue-500">
-                <h3 class="text-gray-400 text-sm font-semibold mb-1">Arus (Ampere)</h3>
-                <p class="text-3xl font-bold">{{ machineData.ampere || 0 }} <span class="text-lg">A</span></p>
+            <div v-show="activeTab === 'gateways'" class="p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Connected Edge Nodes</h2>
+                <div class="bg-gray-800 rounded-xl shadow-md border border-gray-700 overflow-hidden">
+                    <table class="w-full text-sm text-left text-gray-400">
+                        <thead class="text-xs text-gray-400 uppercase bg-gray-900 border-b border-gray-700">
+                            <tr><th class="px-6 py-4">Node ID</th><th class="px-6 py-4">IP Address</th><th class="px-6 py-4">Protocol</th><th class="px-6 py-4">Status</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-gray-800 border-b border-gray-700">
+                                <td class="px-6 py-4 font-bold text-white"><i class="fa-solid fa-server mr-2"></i>ModbusCollector-01</td>
+                                <td class="px-6 py-4 font-mono">127.0.0.1</td>
+                                <td class="px-6 py-4">Modbus TCP</td>
+                                <td class="px-6 py-4"><span class="bg-green-600/20 text-green-400 px-3 py-1 rounded border border-green-600">Online</span></td>
+                            </tr>
+                            <tr class="bg-gray-800 border-b border-gray-700">
+                                <td class="px-6 py-4 font-bold text-white"><i class="fa-solid fa-server mr-2"></i>CNC-Gateway-02</td>
+                                <td class="px-6 py-4 font-mono">192.168.1.45</td>
+                                <td class="px-6 py-4">OPC-UA</td>
+                                <td class="px-6 py-4"><span class="bg-red-600/20 text-red-400 px-3 py-1 rounded border border-red-600">Offline</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-purple-500">
-                <h3 class="text-gray-400 text-sm font-semibold mb-1">Total Jam Operasi</h3>
-                <p class="text-3xl font-bold">{{ machineData.operating_hours || 0 }} <span class="text-lg">Jam</span></p>
+            <div v-show="activeTab === 'alarms'" class="p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">Active System Alarms</h2>
+                <div class="grid gap-4">
+                    <div class="bg-red-900/20 border-l-4 border-red-500 p-4 rounded-lg shadow-md flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-triangle-exclamation text-red-500 text-2xl mr-4"></i>
+                            <div>
+                                <h4 class="text-red-400 font-bold">Overcurrent Detected</h4>
+                                <p class="text-sm text-gray-400">Machine WELD-001 reported Ampere > 160A. Potential welding defect.</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-gray-500">10 mins ago</span>
+                    </div>
+                    <div class="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-lg shadow-md flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-bolt text-yellow-500 text-2xl mr-4"></i>
+                            <div>
+                                <h4 class="text-yellow-400 font-bold">Voltage Drop Warning</h4>
+                                <p class="text-sm text-gray-400">Shop Floor Network voltage dropped below 215V.</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-gray-500">1 hour ago</span>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h3 class="text-xl font-semibold mb-4 text-gray-300">Trend Arus Listrik (Ampere)</h3>
-            <canvas id="ampereChart" height="80"></canvas>
-        </div>
+            <div v-show="activeTab === 'settings'" class="p-8">
+                <h2 class="text-2xl font-bold text-white mb-6">System Configuration</h2>
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 max-w-2xl">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">MQTT Broker URL</label>
+                        <input type="text" disabled value="tcp://broker.emqx.io:1883" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-gray-300">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">REST API Endpoint</label>
+                        <input type="text" disabled value="http://localhost:5142/api" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-gray-300">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Data Polling Rate (ms)</label>
+                        <input type="number" disabled value="1000" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-gray-300">
+                    </div>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <script>
-        const { createApp } = Vue;
+<script>
+    // 1. TAMBAHKAN markRaw DI SINI
+    const { createApp, markRaw } = Vue;
 
-        createApp({
-            data() {
-                return {
-                    machineData: {},
-                    chartInstance: null
-                }
+    createApp({
+        data() {
+            return {
+                activeTab: 'dashboard',
+                machineData: {},
+                historyTableData: [],
+                chartInstance: null, 
+                currentTime: '',
+                isConnecting: true,
+                jwtToken: null 
+            }
+        },
+        computed: {
+            statusColor() {
+                if (this.machineData.status_code === 2) return { border: 'border-green-500', text: 'text-green-400' };
+                if (this.machineData.status_code === 1) return { border: 'border-yellow-500', text: 'text-yellow-400' };
+                return { border: 'border-red-500', text: 'text-red-400' };
+            }
+        },
+        methods: {
+            updateClock() {
+                const now = new Date();
+                this.currentTime = now.toLocaleTimeString('id-ID', { hour12: false });
             },
-            computed: {
-                // Mewarnai kartu status berdasarkan nilai Modbus (2 = Hijau, 1 = Kuning, 0 = Merah)
-                statusColor() {
-                    if (this.machineData.status_code === 2) return 'border-green-500 text-green-400';
-                    if (this.machineData.status_code === 1) return 'border-yellow-500 text-yellow-400';
-                    return 'border-red-500 text-red-400';
-                }
+            formatTime(isoString) {
+                if (!isoString) return '-';
+                const d = new Date(isoString);
+                return d.toLocaleTimeString('id-ID', { hour12: false });
             },
-            methods: {
-                // Fungsi memanggil API C# kita
-                async fetchCurrentData() {
-                    try {
-                        const response = await fetch('http://localhost:5142/api/machine/WELD-001/current');
-                        const data = await response.json();
-                        this.machineData = data;
-                    } catch (error) {
-                        console.error("Gagal mengambil data:", error);
-                    }
-                },
-                async fetchHistoryData() {
-                    try {
-                        const response = await fetch('http://localhost:5142/api/machine/WELD-001/history');
-                        const data = await response.json();
-                        
-                        // Balik urutan array agar waktu terlama di kiri, terbaru di kanan
-                        const reversedData = data.reverse();
-                        
-                        const labels = reversedData.map(d => new Date(d.timestamp).toLocaleTimeString());
-                        const amperes = reversedData.map(d => d.ampere);
-
-                        this.updateChart(labels, amperes);
-                    } catch (error) {
-                        console.error("Gagal mengambil histori:", error);
-                    }
-                },
-                initChart() {
-                    const ctx = document.getElementById('ampereChart').getContext('2d');
-                    this.chartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                                label: 'Ampere',
-                                data: [],
-                                borderColor: '#3b82f6', // Blue-500
-                                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.4 // Membuat garisnya melengkung halus
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            animation: { duration: 0 }, // Matikan animasi awal agar update terlihat mulus
-                            scales: {
-                                y: { beginAtZero: false, suggestedMin: 100, suggestedMax: 160 }
-                            }
-                        }
+            async authenticate() {
+                try {
+                    const response = await fetch('http://localhost:5142/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ Username: 'admin', Password: 'pcms2026' })
                     });
-                },
-                updateChart(labels, data) {
-                    if (this.chartInstance) {
-                        this.chartInstance.data.labels = labels;
-                        this.chartInstance.data.datasets[0].data = data;
-                        this.chartInstance.update();
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.jwtToken = data.token; 
                     }
+                } catch (error) {
+                    console.error("Gagal terhubung ke Auth API:", error);
                 }
             },
-            mounted() {
-                this.initChart();
-                
-                // Tarik data pertama kali
+            async fetchCurrentData() {
+                if (!this.jwtToken) return;
+                try {
+                    const response = await fetch('http://localhost:5142/api/machine/WELD-001/current', {
+                        headers: { 'Authorization': `Bearer ${this.jwtToken}` }
+                    });
+                    if (response.ok) {
+                        this.machineData = await response.json();
+                        this.isConnecting = false;
+                    }
+                } catch (error) {
+                    this.isConnecting = true;
+                }
+            },
+            async fetchHistoryData() {
+                if (!this.jwtToken) return; 
+                try {
+                    const response = await fetch('http://localhost:5142/api/machine/WELD-001/history', {
+                        headers: { 'Authorization': `Bearer ${this.jwtToken}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.historyTableData = data.slice(0, 5).map(d => ({
+                            timestamp: d.timestamp,
+                            statusCode: d.status_code || 2,
+                            ampere: d.ampere
+                        }));
+                        const reversedForChart = [...data].reverse();
+                        const labels = reversedForChart.map(d => this.formatTime(d.timestamp));
+                        const amperes = reversedForChart.map(d => d.ampere);
+                        this.updateChart(labels, amperes);
+                    }
+                } catch (error) {}
+            },
+            initChart() {
+                const ctx = document.getElementById('ampereChart').getContext('2d');
+                let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+                // 2. BUNGKUS CHART BARU DENGAN markRaw() DI SINI
+                this.chartInstance = markRaw(new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: ' Arus Listrik (A)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#1d4ed8',
+                            pointBorderColor: '#fff',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 0 },
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                            y: { grid: { color: 'rgba(51, 65, 85, 0.5)' }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                }));
+            },
+            updateChart(labels, data) {
+                if (this.chartInstance) {
+                    this.chartInstance.data.labels = labels;
+                    this.chartInstance.data.datasets[0].data = data;
+                    this.chartInstance.update();
+                }
+            }
+        },
+        async mounted() {
+            this.updateClock();
+            setInterval(this.updateClock, 1000);
+            this.initChart();
+            
+            await this.authenticate();
+
+            if (this.jwtToken) {
                 this.fetchCurrentData();
                 this.fetchHistoryData();
-
-                // Auto-refresh: Kartu atas update tiap 1 detik, Grafik update tiap 3 detik
                 setInterval(this.fetchCurrentData, 1000);
                 setInterval(this.fetchHistoryData, 3000);
             }
-        }).mount('#app')
-    </script>
+        }
+    }).mount('#app')
+</script>
 </body>
 </html>

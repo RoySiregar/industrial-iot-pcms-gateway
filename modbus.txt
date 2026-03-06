@@ -1,0 +1,16 @@
+Mode=TCP_Server
+TCP_Port=502
+Slave_ID=1;
+Holding_Reg=1;10;Integer Signed
+Analog_Reg=1;10;Integer Signed
+Digital_Reg=1;10;Boolean
+Coil_Reg=1;10;Boolean
+Holding_Alias=4,Operating_Hours;
+
+address 400001 : 2		Machine_Status	
+address 400002 : 220	Voltage
+address 400003 : 135	Ampere
+address 400004 : 120	Operating_Hours
+
+
+
